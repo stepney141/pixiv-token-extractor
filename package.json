@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "node-fetch": "^3.0.0",
+    "openid-client": "^4.7.5",
+    "puppeteer": "^10.2.0"
+  },
+  "type": "module"
+}
