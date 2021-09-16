@@ -1,19 +1,4 @@
 node_modules/
 */node_modules/
 
-.env
-*/.env
-
-env.js
-*/env.js
-
-*/json/
-*/img/
-
 env.json
-
-*.zip
-chromedriver
-trace.json
-
-tools/

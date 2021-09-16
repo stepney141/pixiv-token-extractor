@@ -5,5 +5,9 @@
     "openid-client": "^4.7.5",
     "puppeteer": "^10.2.0"
   },
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "login": "node ./pixiv_auth_puppeteer.js login",
+    "refresh": "node ./pixiv_auth_puppeteer.js refresh"
+  }
 }
