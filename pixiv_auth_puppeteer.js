@@ -72,7 +72,7 @@ const login_web = async (code_challenge) => {
 
         return code;
     } catch (error) {
-        console.log(error);
+        console.log('[!]: ' + error);
     } finally {
         await pptr_browser.close();
     }
@@ -115,7 +115,7 @@ const get_token = async () => {
         }
         print_auth_token_response(response);
     } catch (error) {
-        console.log(error);
+        console.log('[!]: ' + error);
     }
 };
 
@@ -160,15 +160,15 @@ const refresh = async (refresh_token) => {
             await get_token();
         } else if (process.argv[2] == "refresh") {
             if (!process.argv[3]) {
-                throw new Error("[!]: Input your refresh token");
+                throw new Error("Input your refresh token after the 'refresh'");
             } else {
                 const old_refresh_token = process.argv[3];
                 await refresh(old_refresh_token);
             }
         } else {
-            throw new Error("[!]: Input 'login' or 'refresh' option");
+            throw new Error("Input 'login' or 'refresh' option");
         }
     } catch (e) {
-        console.log(e);
+        console.log('[!]: ' + e);
     }
 })();
