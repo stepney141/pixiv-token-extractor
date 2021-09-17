@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import { generators } from 'openid-client';
 
-const { userid, password }= JSON.parse(fs.readFileSync('./env.json'));
+const { userid, password } = JSON.parse(fs.readFileSync('./env.json'));
 
 /* Latest app version can be found using GET /v1/application-info/android */
 const USER_AGENT = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";
@@ -28,13 +28,14 @@ const oauth_pkce = () => {
 };
 
 const login_web = async (code_challenge) => {
+    let code;
     const pptr_browser = await puppeteer.launch({
         defaultViewport: { width: 1000, height: 1000 },
-        headless: true,
+        // headless: true,
+        headless: false,
         // devtools: true,
     });
     try {
-        let code;
         const login_params = {
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
@@ -48,7 +49,7 @@ const login_web = async (code_challenge) => {
             Object.defineProperty(navigator, 'webdriver', ()=>{});
             delete navigator.__proto__.webdriver;
         });
-        // await page.setDefaultTimeout(0);
+        await page.setDefaultTimeout(0);
 
         await client.send('Network.enable');
         await page.goto(`${LOGIN_URL}?${login_query}`); // go to the login page
@@ -58,7 +59,12 @@ const login_web = async (code_challenge) => {
         const login_button_elementHandle = page.$x(login_button_xpath);
         await (await userid_input_elementHandle)[0].type(userid); // input userid
         await (await password_input_elementHandle)[0].type(password); //input password
-        await (await login_button_elementHandle)[0].click(); // click the login button
+        await Promise.all([
+            (await login_button_elementHandle)[0].click(), // click the login button
+            page.waitForRequest((request) => { // wait a redirect
+                return request.url().includes('https://accounts.pixiv.net/post-redirect') === true;
+            })
+        ]);
         
         await client.on('Network.requestWillBeSent', (params) => {
             if (params.documentURL.includes("pixiv://")) {
@@ -68,14 +74,14 @@ const login_web = async (code_challenge) => {
             }
         });
 
-        await page.waitForTimeout(10000);
+        await page.waitForTimeout(1000);
 
-        return code;
     } catch (error) {
         console.log('[!]: ' + error);
     } finally {
         await pptr_browser.close();
     }
+    return code;
 };
 
 const get_token = async () => {
@@ -160,13 +166,13 @@ const refresh = async (refresh_token) => {
             await get_token();
         } else if (process.argv[2] == "refresh") {
             if (!process.argv[3]) {
-                throw new Error("Input your refresh token after the 'refresh'");
+                throw new Error("Too few arguments: input your refresh token after the 'refresh'");
             } else {
                 const old_refresh_token = process.argv[3];
                 await refresh(old_refresh_token);
             }
         } else {
-            throw new Error("Input 'login' or 'refresh' option");
+            throw new Error("Too few arguments: specify 'login' or 'refresh' option");
         }
     } catch (e) {
         console.log('[!]: ' + e);
