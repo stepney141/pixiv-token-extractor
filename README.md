@@ -16,12 +16,22 @@ Edit `env.json` and set your pixiv userid and password.
 
 ### Get a new token
 
+#### CLI Processing
+
 ```
-yarn run login
+yarn run login --cli
 ```
+
+#### GUI Processing
+
+```
+yarn run login --gui
+```
+
+#### 
 
 ### Refresh an old token
 
 ```
-yarn run refresh <your_refresh_token>
+yarn run refresh YOUR_REFRESH_TOKEN
 ```

@@ -27,12 +27,12 @@ const oauth_pkce = () => {
     return { code_verifier, code_challenge };
 };
 
-const login_web = async (code_challenge) => {
+const login_web = async (code_challenge, cli_flag = true) => {
     let code;
     const pptr_browser = await puppeteer.launch({
         defaultViewport: { width: 1000, height: 1000 },
         // headless: true,
-        headless: false,
+        headless: (cli_flag) ? true : false,
         // devtools: true,
     });
     try {
@@ -84,13 +84,13 @@ const login_web = async (code_challenge) => {
     return code;
 };
 
-const get_token = async () => {
+const get_token = async (cli_flag = true) => {
     try {
         const { code_verifier, code_challenge } = oauth_pkce();
         console.log("[INFO] Gen code_verifier:", code_verifier);
         console.log("[INFO] Gen code_challenge:", code_challenge);
 
-        const code = await login_web(code_challenge);
+        const code = await login_web(code_challenge, cli_flag);
         if (typeof code != 'string') {
             throw new Error("Failed to obtain a login token. Please try again.");
         }
@@ -163,7 +163,13 @@ const refresh = async (refresh_token) => {
 (async () => {
     try {
         if (process.argv[2] == "login") {
-            await get_token();
+            if (process.argv[3] == "--cli") {
+                await get_token(true);
+            } else if (process.argv[3] == "--gui") {
+                await get_token(false);
+            } else {
+                throw new Error("Too few arguments: specify whether 'login --cli' or 'login --gui' option")
+            }
         } else if (process.argv[2] == "refresh") {
             if (!process.argv[3]) {
                 throw new Error("Too few arguments: input your refresh token after the 'refresh'");
@@ -172,7 +178,7 @@ const refresh = async (refresh_token) => {
                 await refresh(old_refresh_token);
             }
         } else {
-            throw new Error("Too few arguments: specify 'login' or 'refresh' option");
+            throw new Error("Too few arguments: specify whether 'login --cli', 'login --gui', or 'refresh YOUR_REFRESH_TOKEN' option");
         }
     } catch (e) {
         console.log('[!]: ' + e);
