@@ -7,7 +7,7 @@
   },
   "type": "module",
   "scripts": {
-    "login": "node ./pixiv_auth_puppeteer.js login",
-    "refresh": "node ./pixiv_auth_puppeteer.js refresh"
+    "login": "node ./index.js login",
+    "refresh": "node ./index.js refresh"
   }
 }

@@ -16,19 +16,17 @@ Edit `env.json` and set your pixiv userid and password.
 
 ### Get a new token
 
-#### CLI Processing
+#### CLI Processing (will launch Headless Chrome)
 
 ```
 yarn run login --cli
 ```
 
-#### GUI Processing
+#### GUI Processing (will launch Headfull Chrome)
 
 ```
 yarn run login --gui
 ```
-
-#### 
 
 ### Refresh an old token
 
