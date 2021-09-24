@@ -22,6 +22,7 @@ export class pixivTokenExtractor {
         this.userid_input_xpath = '//*[@id="LoginComponent"]/form/div[1]/div[1]/input';
         this.password_input_xpath = '//*[@id="LoginComponent"]/form/div[1]/div[2]/input';
         this.login_button_xpath = '//*[@id="LoginComponent"]/form/button';
+        this.recaptcha_prompt_xpath = '//li[contains(text(), "Complete the reCAPTCHA verification")]';
     }
 
     oauth_pkce() {
@@ -29,16 +30,17 @@ export class pixivTokenExtractor {
         const code_verifier = generators.codeVerifier(32);
         const code_challenge = generators.codeChallenge(code_verifier);
         return { code_verifier, code_challenge };
-    };
+    }
 
     async login_web(code_challenge, cli_flag = true) {
-        let code;
+        let code = null;
         const pptr_browser = await puppeteer.launch({
             defaultViewport: { width: 1000, height: 1000 },
-            // headless: true,
             headless: (cli_flag) ? true : false,
             // devtools: true,
         });
+
+        console.log('[INFO]: Launched Chromium browser');
 
         try {
             const login_params = {
@@ -55,7 +57,7 @@ export class pixivTokenExtractor {
                 Object.defineProperty(navigator, 'webdriver', () => { });
                 delete navigator.__proto__.webdriver;
             });
-            await page.setDefaultTimeout(60000);
+            await page.setDefaultTimeout(180000); //timeout: 3mins
 
             await client.send('Network.enable');
             await page.goto(`${this.LOGIN_URL}?${login_query}`); // go to the login page
@@ -69,9 +71,14 @@ export class pixivTokenExtractor {
 
             await Promise.all([
                 page.waitForRequest((request) => { // wait a redirect
+                    // console.log(request.url());
+                    if (request.url().includes('https://accounts.pixiv.net/post-redirect')) {
+                        console.log('[INFO]: Succeed in logging in pixiv');
+                    }
                     return request.url().includes('https://accounts.pixiv.net/post-redirect') === true;
                 }),
                 (await login_button_elementHandle)[0].click(), // click the login button
+                this.catch_recaptcha(page, cli_flag) // check recaptcha when cli processing
             ]);
         
             await client.on('Network.requestWillBeSent', (params) => {
@@ -90,13 +97,22 @@ export class pixivTokenExtractor {
             await pptr_browser.close();
         }
         return code;
-    };
+    }
+
+    async catch_recaptcha(page, cli_flag = true) {
+        if (cli_flag) {
+            await page.waitForTimeout(3000);
+            const reCaptchaMsg_Handler = await page.$x(this.recaptcha_prompt_xpath);
+            if (reCaptchaMsg_Handler.length > 0) {
+                throw new Error("A reCAPTCHA verification is required. Try again with --gui option.");
+            }
+        }
+    }
 
     async get_token(cli_flag = true) {
         try {
             const { code_verifier, code_challenge } = this.oauth_pkce();
-            console.log("[INFO] Gen code_verifier:", code_verifier);
-            console.log("[INFO] Gen code_challenge:", code_challenge);
+            console.log("[INFO]: Generated code_verifier:", code_verifier);
 
             const code = await this.login_web(code_challenge, cli_flag);
             if (typeof code != 'string') {
@@ -131,7 +147,7 @@ export class pixivTokenExtractor {
         } catch (error) {
             console.log('[!]: ' + error);
         }
-    };
+    }
 
     async refresh(refresh_token) {
         try {
@@ -159,7 +175,7 @@ export class pixivTokenExtractor {
         } catch (error) {
             console.log('[!]: ' + error);
         }
-    };
+    }
 
     async print_auth_token_response(response) {
         const data = await response.json();
@@ -170,12 +186,12 @@ export class pixivTokenExtractor {
         console.log("access_token:", access_token);
         console.log("refresh_token:", refresh_token);
         console.log("expires_in:", ("expires_in" in data) ? data.expires_in : 0);
-    };
+    }
 }
 
 (async () => {
     try {
-        const pixivToken = new pixivTokenExtractor()
+        const pixivToken = new pixivTokenExtractor();
 
         if (process.argv[2] == "login") {
             if (process.argv[3] == "--cli") {
@@ -183,7 +199,7 @@ export class pixivTokenExtractor {
             } else if (process.argv[3] == "--gui") {
                 await pixivToken.get_token(false);
             } else {
-                throw new Error("Too few arguments: specify whether 'login --cli' or 'login --gui' option")
+                throw new Error("Too few arguments: specify whether 'login --cli' or 'login --gui' option");
             }
         } else if (process.argv[2] == "refresh") {
             if (!process.argv[3]) {
