@@ -1,6 +1,6 @@
 /* Original: https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde */
-
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import fetch from 'node-fetch';
 import fs from 'fs';
 import { generators } from 'openid-client';
@@ -34,7 +34,7 @@ export class pixivTokenExtractor {
 
     async login_web(code_challenge, cli_flag = true) {
         let code = null;
-        const pptr_browser = await puppeteer.launch({
+        const pptr_browser = await puppeteer.use(StealthPlugin()).launch({
             defaultViewport: { width: 1000, height: 1000 },
             headless: (cli_flag) ? true : false,
             // devtools: true,
@@ -102,6 +102,7 @@ export class pixivTokenExtractor {
     async catch_recaptcha(page, cli_flag = true) {
         if (cli_flag) {
             await page.waitForTimeout(3000);
+            await page.screenshot({path: './hoge.png'});
             const reCaptchaMsg_Handler = await page.$x(this.recaptcha_prompt_xpath);
             if (reCaptchaMsg_Handler.length > 0) {
                 throw new Error("A reCAPTCHA verification is required. Try again with --gui option.");

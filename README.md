@@ -8,7 +8,7 @@
 ### Setup
 
 ```
-yarn
+npm install
 cp env.example.json env.json
 ```
 
@@ -19,17 +19,17 @@ Edit `env.json` and set your pixiv userid and password.
 #### CLI Processing (will launch Headless Chrome)
 
 ```
-yarn run login --cli
+node index.js login --cli
 ```
 
 #### GUI Processing (will launch Headfull Chrome)
 
 ```
-yarn run login --gui
+node index.js login --gui
 ```
 
 ### Refresh an old token
 
 ```
-yarn run refresh YOUR_REFRESH_TOKEN
+node index.js refresh YOUR_REFRESH_TOKEN
 ```

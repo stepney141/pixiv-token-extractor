@@ -3,11 +3,8 @@
     "fs": "^0.0.1-security",
     "node-fetch": "^3.0.0",
     "openid-client": "^4.7.5",
-    "puppeteer": "^10.2.0"
+    "puppeteer-extra": "^3.2.3",
+    "puppeteer-extra-plugin-stealth": "^2.9.0"
   },
-  "type": "module",
-  "scripts": {
-    "login": "node ./index.js login",
-    "refresh": "node ./index.js refresh"
-  }
+  "type": "module"
 }
