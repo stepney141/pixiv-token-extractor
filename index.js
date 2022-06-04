@@ -19,9 +19,9 @@ export class pixivTokenExtractor {
         this.CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
 
         // xpath strings for the automatic login
-        this.userid_input_xpath = '//*[@id="LoginComponent"]/form/div[1]/div[1]/input';
-        this.password_input_xpath = '//*[@id="LoginComponent"]/form/div[1]/div[2]/input';
-        this.login_button_xpath = '//*[@id="LoginComponent"]/form/button';
+        this.userid_input_xpath = '//*[@id="app-mount-point"]/div/div[3]/div[1]/form/fieldset[1]/label/input';
+        this.password_input_xpath = '//*[@id="app-mount-point"]/div/div[3]/div[1]/form/fieldset[2]/label/input';
+        this.login_button_xpath = '//*[@id="app-mount-point"]/div/div[3]/div[1]/form/button';
         this.recaptcha_prompt_xpath = '//li[contains(text(), "Complete the reCAPTCHA verification")]';
     }
 
@@ -102,7 +102,6 @@ export class pixivTokenExtractor {
     async catch_recaptcha(page, cli_flag = true) {
         if (cli_flag) {
             await page.waitForTimeout(3000);
-            await page.screenshot({path: './hoge.png'});
             const reCaptchaMsg_Handler = await page.$x(this.recaptcha_prompt_xpath);
             if (reCaptchaMsg_Handler.length > 0) {
                 throw new Error("A reCAPTCHA verification is required. Try again with --gui option.");
@@ -117,7 +116,7 @@ export class pixivTokenExtractor {
 
             const code = await this.login_web(code_challenge, cli_flag);
             if (typeof code != 'string') {
-                throw new Error("Failed to obtain a login token. Please try again.");
+                throw new Error("Failed to obtain a login token. Please try again in the GUI mode.");
             }
         
             const body = {
