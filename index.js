@@ -19,9 +19,9 @@ export class pixivTokenExtractor {
         this.CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
 
         // xpath strings for the automatic login
-        this.userid_input_xpath = '//*[@id="app-mount-point"]/div/div[3]/div[1]/form/fieldset[1]/label/input';
-        this.password_input_xpath = '//*[@id="app-mount-point"]/div/div[3]/div[1]/form/fieldset[2]/label/input';
-        this.login_button_xpath = '//*[@id="app-mount-point"]/div/div[3]/div[1]/form/button';
+        this.userid_input_xpath = '//input[@autocomplete="username"]';
+        this.password_input_xpath = '//input[@type="password"]';
+        this.login_button_xpath = '//button[@type="submit"]';
         this.recaptcha_prompt_xpath = '//li[contains(text(), "Complete the reCAPTCHA verification")]';
     }
 
@@ -61,6 +61,7 @@ export class pixivTokenExtractor {
 
             await client.send('Network.enable');
             await page.goto(`${this.LOGIN_URL}?${login_query}`); // go to the login page
+            console.log(`${this.LOGIN_URL}?${login_query}`)
 
             const userid_input_elementHandle = page.$x(this.userid_input_xpath);
             const password_input_elementHandle = page.$x(this.password_input_xpath);
