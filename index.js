@@ -7,7 +7,7 @@ import { generators } from 'openid-client';
 
 const { userid, password } = JSON.parse(fs.readFileSync('./env.json'));
 
-export class pixivTokenExtractor {
+export class PixivTokenExtractor {
 
     constructor() {
         /* Latest app version can be found using GET /v1/application-info/android */
@@ -19,20 +19,22 @@ export class pixivTokenExtractor {
         this.CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
 
         // xpath strings for the automatic login
-        this.userid_input_xpath = '//input[@autocomplete="username"]';
-        this.password_input_xpath = '//input[@type="password"]';
-        this.login_button_xpath = '//button[@type="submit"]';
-        this.recaptcha_prompt_xpath = '//li[contains(text(), "Complete the reCAPTCHA verification")]';
+        this.XPATH = {
+            userid_input : '//input[@autocomplete="username"]',
+            password_input : '//input[@type="password"]',
+            login_button : '//button[@type="submit"]',
+            recaptcha_prompt : '//li[contains(text(), "Complete the reCAPTCHA verification")]',
+        };        
     }
 
-    oauth_pkce() {
+    generateOAuthPKCE() {
         /* Proof Key for Code Exchange by OAuth Public Clients (RFC7636). */
         const code_verifier = generators.codeVerifier(32);
         const code_challenge = generators.codeChallenge(code_verifier);
         return { code_verifier, code_challenge };
     }
 
-    async login_web(code_challenge, cli_flag = true) {
+    async login(code_challenge, cli_flag = true) {
         let code = null;
         const pptr_browser = await puppeteer.use(StealthPlugin()).launch({
             defaultViewport: { width: 1000, height: 1000 },
@@ -61,11 +63,11 @@ export class pixivTokenExtractor {
 
             await client.send('Network.enable');
             await page.goto(`${this.LOGIN_URL}?${login_query}`); // go to the login page
-            console.log(`${this.LOGIN_URL}?${login_query}`)
+            console.log('[INFO]: Accessed to the login page');
 
-            const userid_input_elementHandle = page.$x(this.userid_input_xpath);
-            const password_input_elementHandle = page.$x(this.password_input_xpath);
-            const login_button_elementHandle = page.$x(this.login_button_xpath);
+            const userid_input_elementHandle = page.$x(this.XPATH.userid_input);
+            const password_input_elementHandle = page.$x(this.XPATH.password_input);
+            const login_button_elementHandle = page.$x(this.XPATH.login_button);
 
             await (await userid_input_elementHandle)[0].type(userid); // input userid
             await (await password_input_elementHandle)[0].type(password); //input password
@@ -74,12 +76,12 @@ export class pixivTokenExtractor {
                 page.waitForRequest((request) => { // wait a redirect
                     // console.log(request.url());
                     if (request.url().includes('https://accounts.pixiv.net/post-redirect')) {
-                        console.log('[INFO]: Succeed in logging in pixiv');
+                        console.log('[INFO]: Succeed in logging in to pixiv');
                     }
                     return request.url().includes('https://accounts.pixiv.net/post-redirect') === true;
                 }),
                 (await login_button_elementHandle)[0].click(), // click the login button
-                this.catch_recaptcha(page, cli_flag) // check recaptcha when cli processing
+                this.detectRecaptcha(page, cli_flag) // check recaptcha when cli processing
             ]);
         
             await client.on('Network.requestWillBeSent', (params) => {
@@ -100,22 +102,22 @@ export class pixivTokenExtractor {
         return code;
     }
 
-    async catch_recaptcha(page, cli_flag = true) {
+    async detectRecaptcha(page, cli_flag = true) {
         if (cli_flag) {
             await page.waitForTimeout(3000);
-            const reCaptchaMsg_Handler = await page.$x(this.recaptcha_prompt_xpath);
+            const reCaptchaMsg_Handler = await page.$x(this.XPATH.recaptcha_prompt);
             if (reCaptchaMsg_Handler.length > 0) {
                 throw new Error("A reCAPTCHA verification is required. Try again with --gui option.");
             }
         }
     }
 
-    async get_token(cli_flag = true) {
+    async getToken(cli_flag = true) {
         try {
-            const { code_verifier, code_challenge } = this.oauth_pkce();
+            const { code_verifier, code_challenge } = this.generateOAuthPKCE();
             console.log("[INFO]: Generated code_verifier:", code_verifier);
 
-            const code = await this.login_web(code_challenge, cli_flag);
+            const code = await this.login(code_challenge, cli_flag);
             if (typeof code != 'string') {
                 throw new Error("Failed to obtain a login token. Please try again in the GUI mode.");
             }
@@ -144,7 +146,7 @@ export class pixivTokenExtractor {
             if (!response.ok) {
                 throw new Error(`${response.status} ${response.statusText} ${await response.text()}`);
             }
-            this.print_auth_token_response(response);
+            this.printAuthTokenResponse(response);
         } catch (error) {
             console.log('[!]: ' + error);
         }
@@ -172,13 +174,13 @@ export class pixivTokenExtractor {
             if (!response.ok) {
                 throw new Error(`${response.status} ${response.statusText} ${await response.text()}`);
             }
-            this.print_auth_token_response(response);
+            this.printAuthTokenResponse(response);
         } catch (error) {
             console.log('[!]: ' + error);
         }
     }
 
-    async print_auth_token_response(response) {
+    async printAuthTokenResponse(response) {
         const data = await response.json();
 
         const access_token = data.access_token;
@@ -192,13 +194,13 @@ export class pixivTokenExtractor {
 
 (async () => {
     try {
-        const pixivToken = new pixivTokenExtractor();
+        const pixivToken = new PixivTokenExtractor();
 
         if (process.argv[2] == "login") {
             if (process.argv[3] == "--cli") {
-                await pixivToken.get_token(true);
+                await pixivToken.getToken(true);
             } else if (process.argv[3] == "--gui") {
-                await pixivToken.get_token(false);
+                await pixivToken.getToken(false);
             } else {
                 throw new Error("Too few arguments: specify whether 'login --cli' or 'login --gui' option");
             }
